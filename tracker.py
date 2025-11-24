@@ -44,17 +44,53 @@ def add_transaction(conn, date, amount, category, transaction_type):
         print(f"Error adding transaction: {e}")
 
 
+def view_transactions(conn):
+    """Retrieves and displays all transactions from the database."""
+    try:
+        cursor = conn.cursor()
+        
+        # SQL query to select all data, ordered by date
+        cursor.execute("SELECT id, date, amount, category, type FROM transactions ORDER BY date DESC")
+        
+        # Fetch all results returned by the query
+        transactions = cursor.fetchall()
+
+        if not transactions:
+            print("\nNo transactions found.")
+            return
+
+        print("\n--- TRANSACTION HISTORY ---")
+        # Print a header for the table
+        print(f"{'ID':<4} | {'Date':<10} | {'Type':<8} | {'Category':<15} | {'Amount':>10}")
+        print("-" * 50)
+        
+        # Loop through the results and format them
+        for tx in transactions:
+            tx_id, date, amount, category, tx_type = tx
+            amount_str = f"${amount:,.2f}"
+            print(f"{tx_id:<4} | {date:<10} | {tx_type:<8} | {category:<15} | {amount_str:>10}")
+
+    except sqlite3.Error as e:
+        print(f"Error viewing transactions: {e}")
+
+
 # --- 3. MAIN EXECUTION BLOCK (Last) ---
 if __name__ == "__main__":
     conn = setup_database()
     if conn:
         print(f"Database '{DATABASE_NAME}' set up successfully.")
         
-        # Now Python knows what add_transaction is!
+        # 1. Add sample data (C - Create)
         add_transaction(conn, '2025-11-24', 2500.00, 'Salary', 'Income')
         add_transaction(conn, '2025-11-24', 55.75, 'Groceries', 'Expense')
+        add_transaction(conn, '2025-11-25', 150.00, 'Rent', 'Expense') # New Expense
+        
+        # 2. View all transactions (R - Read)
+        view_transactions(conn)
         
         conn.close()
 
 
-        
+
+
+
