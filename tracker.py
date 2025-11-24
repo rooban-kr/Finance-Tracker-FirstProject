@@ -7,6 +7,8 @@ def setup_database():
     """Connects to the database and creates the 'transactions' table if it doesn't exist."""
     try:
         conn = sqlite3.connect(DATABASE_NAME)
+        # IMPORTANT: Allows accessing columns by name instead of index (needed for Streamlit's data handling)
+        conn.row_factory = sqlite3.Row 
         cursor = conn.cursor()
 
         cursor.execute("""
@@ -26,7 +28,7 @@ def setup_database():
         print(f"Database error: {e}")
         return None
 
-# --- 2. ADD TRANSACTION FUNCTION (Second - Must be before it's called) ---
+# --- 2. CREATE FUNCTION ---
 def add_transaction(conn, date, amount, category, transaction_type):
     """Inserts a new transaction record into the database."""
     try:
@@ -43,28 +45,22 @@ def add_transaction(conn, date, amount, category, transaction_type):
     except sqlite3.Error as e:
         print(f"Error adding transaction: {e}")
 
-
+# --- 3. READ FUNCTION (FOR TERMINAL) ---
 def view_transactions(conn):
-    """Retrieves and displays all transactions from the database."""
+    """Retrieves and displays all transactions from the database (for terminal use)."""
     try:
         cursor = conn.cursor()
-        
-        # SQL query to select all data, ordered by date
         cursor.execute("SELECT id, date, amount, category, type FROM transactions ORDER BY date DESC")
-        
-        # Fetch all results returned by the query
         transactions = cursor.fetchall()
-
+        
         if not transactions:
             print("\nNo transactions found.")
             return
 
         print("\n--- TRANSACTION HISTORY ---")
-        # Print a header for the table
         print(f"{'ID':<4} | {'Date':<10} | {'Type':<8} | {'Category':<15} | {'Amount':>10}")
         print("-" * 50)
         
-        # Loop through the results and format them
         for tx in transactions:
             tx_id, date, amount, category, tx_type = tx
             amount_str = f"${amount:,.2f}"
@@ -73,23 +69,33 @@ def view_transactions(conn):
     except sqlite3.Error as e:
         print(f"Error viewing transactions: {e}")
 
+# --- 4. READ FUNCTION (FOR WEB APP - RETURNS DATA) ---
+def view_transactions_for_app(conn):
+    """Retrieves all transactions and returns them as a list of dictionaries for Streamlit/Pandas."""
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, date, amount, category, type FROM transactions ORDER BY date DESC")
+        # Fetch rows and convert them to dictionaries because of conn.row_factory = sqlite3.Row
+        rows = cursor.fetchall() 
+        return [dict(row) for row in rows] 
+    except sqlite3.Error as e:
+        print(f"Error viewing transactions for app: {e}")
+        return []
 
+# --- 5. CORE CALCULATION FUNCTION ---
 def calculate_total_balance(conn):
     """Calculates the total balance by summing Income and subtracting Expense."""
     try:
         cursor = conn.cursor()
         
-        # SQL to get the SUM of all Income amounts
         income_query = "SELECT SUM(amount) FROM transactions WHERE type = 'Income'"
         cursor.execute(income_query)
         total_income = cursor.fetchone()[0] or 0.0
         
-        # SQL to get the SUM of all Expense amounts
         expense_query = "SELECT SUM(amount) FROM transactions WHERE type = 'Expense'"
         cursor.execute(expense_query)
         total_expense = cursor.fetchone()[0] or 0.0
 
-        # Calculate the net balance
         balance = total_income - total_expense
         
         return balance, total_income, total_expense
@@ -97,26 +103,47 @@ def calculate_total_balance(conn):
     except sqlite3.Error as e:
         print(f"Error calculating balance: {e}")
         return 0.0, 0.0, 0.0
+        
+# --- 6. UPDATE FUNCTION (New) ---
+def update_transaction(conn, tx_id, date, amount, category, transaction_type):
+    """Updates an existing transaction record."""
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE transactions
+            SET date = ?, amount = ?, category = ?, type = ?
+            WHERE id = ?
+        """, (date, amount, category, transaction_type, tx_id))
+        
+        conn.commit()
+        return True
+    except sqlite3.Error as e:
+        print(f"Error updating transaction ID {tx_id}: {e}")
+        return False
+
+# --- 7. DELETE FUNCTION (New) ---
+def delete_transaction(conn, tx_id):
+    """Deletes a transaction record based on its ID."""
+    try:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM transactions WHERE id = ?", (tx_id,))
+        conn.commit()
+        return True
+    except sqlite3.Error as e:
+        print(f"Error deleting transaction ID {tx_id}: {e}")
+        return False
 
 
-# --- 3. MAIN EXECUTION BLOCK (Last) ---
+# --- MAIN EXECUTION BLOCK (Cleaned up for app use) ---
 if __name__ == "__main__":
     conn = setup_database()
     if conn:
         print(f"Database '{DATABASE_NAME}' set up successfully.")
         
-        # NOTE: WE ARE COMMENTING OUT THE ADD TRANSACTIONS LINES FOR NOW
-        #       This prevents adding duplicates every time you run the script.
-        # add_transaction(conn, '2025-11-24', 2500.00, 'Salary', 'Income')
-        # add_transaction(conn, '2025-11-24', 55.75, 'Groceries', 'Expense')
-        # add_transaction(conn, '2025-11-25', 150.00, 'Rent', 'Expense')
+        # Test the core features for terminal output
+        view_transactions(conn) 
         
-        # 1. View all transactions (R - Read)
-        view_transactions(conn)
-        
-        # 2. Calculate and display balance (Core Logic)
         balance, income, expense = calculate_total_balance(conn)
-        
         print("\n--- FINANCIAL SUMMARY ---")
         print(f"Total Income:  ${income:,.2f}")
         print(f"Total Expense: ${expense:,.2f}")
@@ -124,8 +151,3 @@ if __name__ == "__main__":
         print("-" * 25)
         
         conn.close()
-
-
-
-
-
