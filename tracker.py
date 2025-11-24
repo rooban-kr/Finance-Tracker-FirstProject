@@ -74,19 +74,54 @@ def view_transactions(conn):
         print(f"Error viewing transactions: {e}")
 
 
+def calculate_total_balance(conn):
+    """Calculates the total balance by summing Income and subtracting Expense."""
+    try:
+        cursor = conn.cursor()
+        
+        # SQL to get the SUM of all Income amounts
+        income_query = "SELECT SUM(amount) FROM transactions WHERE type = 'Income'"
+        cursor.execute(income_query)
+        total_income = cursor.fetchone()[0] or 0.0
+        
+        # SQL to get the SUM of all Expense amounts
+        expense_query = "SELECT SUM(amount) FROM transactions WHERE type = 'Expense'"
+        cursor.execute(expense_query)
+        total_expense = cursor.fetchone()[0] or 0.0
+
+        # Calculate the net balance
+        balance = total_income - total_expense
+        
+        return balance, total_income, total_expense
+
+    except sqlite3.Error as e:
+        print(f"Error calculating balance: {e}")
+        return 0.0, 0.0, 0.0
+
+
 # --- 3. MAIN EXECUTION BLOCK (Last) ---
 if __name__ == "__main__":
     conn = setup_database()
     if conn:
         print(f"Database '{DATABASE_NAME}' set up successfully.")
         
-        # 1. Add sample data (C - Create)
-        add_transaction(conn, '2025-11-24', 2500.00, 'Salary', 'Income')
-        add_transaction(conn, '2025-11-24', 55.75, 'Groceries', 'Expense')
-        add_transaction(conn, '2025-11-25', 150.00, 'Rent', 'Expense') # New Expense
+        # NOTE: WE ARE COMMENTING OUT THE ADD TRANSACTIONS LINES FOR NOW
+        #       This prevents adding duplicates every time you run the script.
+        # add_transaction(conn, '2025-11-24', 2500.00, 'Salary', 'Income')
+        # add_transaction(conn, '2025-11-24', 55.75, 'Groceries', 'Expense')
+        # add_transaction(conn, '2025-11-25', 150.00, 'Rent', 'Expense')
         
-        # 2. View all transactions (R - Read)
+        # 1. View all transactions (R - Read)
         view_transactions(conn)
+        
+        # 2. Calculate and display balance (Core Logic)
+        balance, income, expense = calculate_total_balance(conn)
+        
+        print("\n--- FINANCIAL SUMMARY ---")
+        print(f"Total Income:  ${income:,.2f}")
+        print(f"Total Expense: ${expense:,.2f}")
+        print(f"Current Balance: ${balance:,.2f}")
+        print("-" * 25)
         
         conn.close()
 
