@@ -82,7 +82,13 @@ if transactions:
 
     # Highlight income and expense for better visualization
     st.dataframe(
-        df.style.applymap(lambda x: 'background-color: #d4edda' if x == 'Income' else 'background-color: #f8d7da', subset=['Type']),
+        df.style.format({
+            # Enforce 2 decimal places and use commas for thousands
+            "Amount": "₹{:,.2f}".format 
+        }).applymap(
+            # New Lighter Pastel Colors for better contrast
+            lambda x: 'background-color: #e6ffed' if x == 'Income' else 'background-color: #fff0f5', subset=['Type']
+        ),
         use_container_width=True
     )
 # ... rest of the app.py file
