@@ -23,6 +23,16 @@ col1.metric("Total Income", f"${income:,.2f}", delta_color="inverse")
 col2.metric("Total Expense", f"${expense:,.2f}", delta_color="inverse")
 col3.metric("Current Balance", f"${balance:,.2f}")
 
+# Add a reset button section
+st.markdown("---")
+st.subheader("Database Management")
+if st.button("🔴 Reset All Data (Delete All Transactions)", help="CAUTION: This will permanently delete all records!"):
+        if db.reset_database(conn):
+            st.success("Database successfully reset! All transactions deleted.")
+            st.rerun()
+        else:
+            st.error("Failed to reset database.")
+
 st.markdown("---")
 
 ## --- Add Transaction Form ---

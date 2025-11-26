@@ -75,10 +75,14 @@ def view_transactions_for_app(conn):
     try:
         cursor = conn.cursor()
         cursor.execute("SELECT id, date, amount, category, type FROM transactions ORDER BY date DESC")
+        
         # Fetch rows and convert them to dictionaries because of conn.row_factory = sqlite3.Row
+        # This fixes the issue by ensuring the data format is consistent for Pandas/Streamlit
         rows = cursor.fetchall() 
         return [dict(row) for row in rows] 
+        
     except sqlite3.Error as e:
+        # It's helpful to log the error for debugging
         print(f"Error viewing transactions for app: {e}")
         return []
 
@@ -132,6 +136,20 @@ def delete_transaction(conn, tx_id):
     except sqlite3.Error as e:
         print(f"Error deleting transaction ID {tx_id}: {e}")
         return False
+    
+    # --- 8. RESET FUNCTION (New) ---
+def reset_database(conn):
+    """Deletes all data from the transactions table."""
+    try:
+        cursor = conn.cursor()
+        # SQL to delete all rows in the table
+        cursor.execute("DELETE FROM transactions")
+        conn.commit()
+        return True
+    except sqlite3.Error as e:
+        print(f"Error resetting database: {e}")
+        return False
+    
 
 
 # --- MAIN EXECUTION BLOCK (Cleaned up for app use) ---
