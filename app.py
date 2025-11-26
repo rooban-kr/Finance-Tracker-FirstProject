@@ -80,17 +80,15 @@ if transactions:
     df = df[['id', 'date', 'amount', 'category', 'type']] 
     df.columns = ["ID", "Date", "Amount", "Category", "Type"] # Set display names
 
-    # Highlight income and expense for better visualization
+    # Display transaction history with clean formatting
     st.dataframe(
         df.style.format({
             # Enforce 2 decimal places and use commas for thousands
             "Amount": "₹{:,.2f}".format 
-        }).applymap(
-            # New Lighter Pastel Colors for better contrast
-            lambda x: 'background-color: #e6ffed' if x == 'Income' else 'background-color: #fff0f5', subset=['Type']
-        ),
+        }),
         use_container_width=True
     )
+    
 # ... rest of the app.py file
 else:
     st.info("No transactions found. Use the form above to add one!")
