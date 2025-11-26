@@ -84,7 +84,7 @@ if transactions:
     st.dataframe(
         df.style.format({
             # Enforce 2 decimal places and use commas for thousands
-            "Amount": "₹{:,.2f}".format 
+            "Amount": "${:,.2f}".format 
         }),
         use_container_width=True
     )
