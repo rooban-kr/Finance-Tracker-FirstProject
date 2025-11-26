@@ -69,20 +69,23 @@ st.markdown("---")
 st.header("🗒️ Transaction History")
 
 # Get transactions from the database
-# NOTE: This calls the specific function we created for the web app
+
 transactions = db.view_transactions_for_app(conn)
 
 if transactions:
-    # Convert list of tuples to DataFrame for clean, interactive display
-    df = pd.DataFrame(
-        transactions, 
-        columns=["ID", "Date", "Amount", "Category", "Type"]
-    )
+    # Convert list of dictionaries (from tracker.py) to DataFrame 
+    df = pd.DataFrame(transactions)
+    
+    # CRITICAL FIX: Ensure the column order and names are correctly mapped
+    df = df[['id', 'date', 'amount', 'category', 'type']] 
+    df.columns = ["ID", "Date", "Amount", "Category", "Type"] # Set display names
+
     # Highlight income and expense for better visualization
     st.dataframe(
         df.style.applymap(lambda x: 'background-color: #d4edda' if x == 'Income' else 'background-color: #f8d7da', subset=['Type']),
         use_container_width=True
     )
+# ... rest of the app.py file
 else:
     st.info("No transactions found. Use the form above to add one!")
 
